@@ -1,3 +1,5 @@
+import { Piece } from './models';
+
 export enum Color {
     White,
     Black
@@ -39,6 +41,20 @@ export const pieceImagePaths: Readonly<Record<FENChar, string>> = {
     [FENChar.BlackQueen]: 'assets/pieces/black queen.svg',
     [FENChar.BlackKing]: 'assets/pieces/black king.svg'
 };
+
+export type LastMove = {
+    prevX: number;
+    prevY: number;
+    currX: number;
+    currY: number;
+    piece: Piece;
+};
+
+export type CheckState = {
+    isInCheck: boolean;
+    x?: number;
+    y?: number;
+}
 
 export { Bishop } from './pieces/bishop';
 export { King } from './pieces/king';
