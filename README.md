@@ -1,7 +1,7 @@
 # NgChessGame
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.3.7.
-Based on tutorial from [awsomeCStutorials](https://github.com/awsomeCStutorials/chess-game/tree/master)
+Based on tutorial from [awsomeCStutorials](https://github.com/awsomeCStutorials/chess-game/tree/master).
 
 ## Development server
 

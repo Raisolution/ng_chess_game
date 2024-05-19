@@ -24,6 +24,10 @@ export class ChessBoardComponent {
     return this.chessBoard.safeSquares;
   }
 
+  public get gameOverMessage(): string {
+    return this.chessBoard.gameOverMessage;
+  }
+
   private selectedSquare: SelectedSquare = { piece: null };
   private pieceSafeSquares: Coords[] = [];
   private lastMove: LastMove | undefined;
@@ -84,8 +88,11 @@ export class ChessBoardComponent {
   }
 
   public selectingPiece(x: number, y: number): void {
+    if (this.gameOverMessage.length > 0) { return; }
+
     const piece: FENChar | null = this.chessBoardView[x][y];
     if (!piece) return;
+
     if (this.isWrongPieceSelected(piece)) return;
 
     const isSameSquareClicked: boolean =

@@ -7,6 +7,10 @@ export class ChessBoard {
     private _safeSquares: SafeSquares;
     private _lastMove: LastMove | undefined;
     private _checkState: CheckState = { isInCheck: false };
+    private _fiftyMoveRuleCounter: number = 0;
+
+    private _isGameOver: boolean = false;
+    private _gameOverMessage: string = "";
 
     constructor() {
         this.chessBoard = [
@@ -49,6 +53,14 @@ export class ChessBoard {
 
     public get playerColor(): Color {
         return this._playerColor;
+    }
+
+    public get isGameOver(): boolean {
+        return this._isGameOver;
+    }
+
+    public get gameOverMessage(): string {
+        return this._gameOverMessage;
     }
 
     public get chessBoardView(): (FENChar|null)[][] {
@@ -279,6 +291,10 @@ export class ChessBoard {
     }
 
     public move(prevX: number, prevY: number, newX: number, newY: number, promotedPieceType: FENChar | null): void {
+        if (this._isGameOver) {
+            throw new Error("Game is over!");
+        }
+
         if (!this.areCoordsValid(prevX, prevY) || !this.areCoordsValid(newX, newY)) return;
 
         const piece: Piece | null = this.chessBoard[prevX][prevY];
@@ -291,6 +307,13 @@ export class ChessBoard {
 
         if ((piece instanceof Pawn || piece instanceof King || piece instanceof Rook) && !piece.hasMoved) {
             piece.hasMoved = true;
+        }
+
+        const isPieceTaken: boolean = this.chessBoard[newX][newY] !== null;
+        if (piece instanceof Pawn || isPieceTaken) {
+            this._fiftyMoveRuleCounter = 0;
+        } else {
+            this._fiftyMoveRuleCounter += 0.5;
         }
 
         this.handleSpecialMoves(piece, prevX, prevY, newX, newY);
@@ -307,6 +330,7 @@ export class ChessBoard {
         this._playerColor = this._playerColor === Color.White ? Color.Black : Color.White;
         this.isInCheck(this._playerColor, true);
         this._safeSquares = this.findSafeSquares();
+        this._isGameOver = this.isGameFinished();
     }
 
     private handleSpecialMoves(piece: Piece, prevX: number, prevY: number, newX: number, newY: number): void {
@@ -343,5 +367,31 @@ export class ChessBoard {
         }
 
         return new Queen(this._playerColor);
+    }
+
+    private isGameFinished(): boolean {
+        if (!this._safeSquares.size) {
+            if (this._checkState.isInCheck) {
+                const prevPlayer: string = this._playerColor === Color.White ? "Black" : "White";
+                this._gameOverMessage = prevPlayer + " won by checkmate.";
+            } else {
+                this._gameOverMessage = "Stalemate.";
+            }
+
+            return true;
+        }
+
+        if (this._fiftyMoveRuleCounter >= 50) {
+            this._gameOverMessage = "Draw due to 50 move rule.";
+            return true;
+        }
+
+        return false;
+    }
+
+    private insufficientMaterial(): boolean {
+        //TBD checks if there are enough pieces to finish a game.
+
+        return false;
     }
 }
