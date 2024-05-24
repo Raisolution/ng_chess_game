@@ -1,4 +1,4 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ChessBoard } from '../../chess-logic/chess-board';
 import { CheckState, Color, Coords, FENChar, GameHistory, LastMove, MoveList, MoveType, SafeSquares, pieceImagePaths } from '../../chess-logic/models';
 import { CommonModule } from '@angular/common';
@@ -6,6 +6,7 @@ import { SelectedSquare } from './models';
 import { ChessBoardService } from './chess-board.service';
 import { FENConverter } from '../../chess-logic/FENConverter';
 import { MoveListComponent } from '../move-list/move-list.component';
+import { Subscription, filter, fromEvent, tap } from 'rxjs';
 
 @Component({
   selector: 'app-chess-board',
@@ -14,7 +15,7 @@ import { MoveListComponent } from '../move-list/move-list.component';
   templateUrl: './chess-board.component.html',
   styleUrl: './chess-board.component.css'
 })
-export class ChessBoardComponent implements OnDestroy {
+export class ChessBoardComponent implements OnInit, OnDestroy {
   protected chessBoard = new ChessBoard();
   public chessBoardView: (FENChar|null)[][] = this.chessBoard.chessBoardView;
   public pieceImagePaths = pieceImagePaths;
@@ -56,11 +57,44 @@ export class ChessBoardComponent implements OnDestroy {
   }
 
   public flipMode: boolean = false;
+  private subscriptions$ = new Subscription();
 
   constructor(protected chessBoardService: ChessBoardService) { }
 
+  public ngOnInit(): void {
+    const keyEventSubscription$: Subscription = fromEvent<KeyboardEvent>(document, "keyup")
+            .pipe(
+              filter(event => event.key === "ArrowLeft" || event.key === "ArrowRight"),
+              tap(event => {
+                switch(event.key) {
+                  case "ArrowLeft":
+                    if (this.gameHistoryPointer === 0) {
+                      return;
+                    } else {
+                      this.gameHistoryPointer -= 1;
+                      break;
+                    }
+                  case "ArrowRight":
+                    if (this.gameHistoryPointer === this.gameHistory.length - 1) {
+                      return;
+                    } else {
+                      this.gameHistoryPointer += 1;
+                      break;
+                    }
+                  default:
+                    break;
+                }
+
+                this.showPreviousPosition(this.gameHistoryPointer);
+              })
+            ).subscribe();
+    
+    this.subscriptions$.add(keyEventSubscription$);
+  }
+
   public ngOnDestroy(): void {
     this.chessBoardService.chessBoardState$.next(FENConverter.initalPosition);
+    this.subscriptions$.unsubscribe();
   }
 
   public flipBoard(): void {

@@ -26,7 +26,9 @@ export class ComputerModeComponent extends ChessBoardComponent implements OnInit
     this.computerSubscriptions$.unsubscribe();
   }
 
-  ngOnInit(): void {
+  public override ngOnInit(): void {
+    super.ngOnInit();
+
     const computerConfigurationSubscription$: Subscription = 
         this.stockFishService.computerConfiguration$.subscribe({
           next: (computerConfiguration) => {
