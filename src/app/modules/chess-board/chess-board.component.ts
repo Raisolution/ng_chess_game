@@ -1,6 +1,6 @@
 import { Component, OnDestroy } from '@angular/core';
 import { ChessBoard } from '../../chess-logic/chess-board';
-import { CheckState, Color, Coords, FENChar, GameHistory, LastMove, MoveList, SafeSquares, pieceImagePaths } from '../../chess-logic/models';
+import { CheckState, Color, Coords, FENChar, GameHistory, LastMove, MoveList, MoveType, SafeSquares, pieceImagePaths } from '../../chess-logic/models';
 import { CommonModule } from '@angular/common';
 import { SelectedSquare } from './models';
 import { ChessBoardService } from './chess-board.service';
@@ -130,6 +130,17 @@ export class ChessBoardComponent implements OnDestroy {
     this.pieceSafeSquares = this.safeSquares.get(x + "," + y) || [];
   }
 
+  private markLastMoveAndCheckState(lastMove: LastMove|undefined, checkState: CheckState): void {
+    this.lastMove = lastMove;
+    this.checkState = checkState;
+
+    if (this.lastMove) {
+      this.moveSound(this.lastMove.moveType);
+    } else {
+      this.moveSound(new Set<MoveType>([MoveType.BasicMove]));
+    }
+  }
+
   private isWrongPieceSelected(piece: FENChar): boolean {
     const isWhitePieceSelected: boolean = piece === piece.toUpperCase();
     return isWhitePieceSelected && this.playerColor === Color.Black ||
@@ -160,8 +171,7 @@ export class ChessBoardComponent implements OnDestroy {
     this.chessBoard.move(prevX, prevY, newX, newY, this.promotedPiece);
     this.chessBoardView = this.chessBoard.chessBoardView;
 
-    this.checkState = this.chessBoard.checkState;
-    this.lastMove = this.chessBoard.lastMove;
+    this.markLastMoveAndCheckState(this.chessBoard.lastMove, this.chessBoard.checkState);
     
     this.unmarkingPreviouslySelectedAndSafeSquares();
     this.chessBoardService.chessBoardState$.next(this.chessBoard.boardAsFEN);
@@ -192,8 +202,27 @@ export class ChessBoardComponent implements OnDestroy {
     const { board, checkState, lastMove } = this.gameHistory[moveIndex];
     
     this.chessBoardView = board;
-    this.checkState = checkState;
-    this.lastMove = lastMove;
+    this.markLastMoveAndCheckState(lastMove, checkState);
     this.gameHistoryPointer = moveIndex;
+  }
+
+  private moveSound(moveType: Set<MoveType>): void {
+    const moveSound = new Audio("assets/sound/move.mp3");
+
+    if (moveType.has(MoveType.Promotion)) {
+      moveSound.src = "assets/sound/promotion.mp3";
+    } else if (moveType.has(MoveType.Capture)) {
+      moveSound.src = "assets/sound/capture.mp3";
+    } else if (moveType.has(MoveType.Castling)) {
+      moveSound.src = "assets/sound/castling.mp3";
+    }
+
+    if (moveType.has(MoveType.Check)) {
+      moveSound.src = "assets/sound/check.mp3";
+    } else if (moveType.has(MoveType.CheckMate)) {
+      moveSound.src = "assets/sound/checkmate.mp3";
+    }
+
+    moveSound.play();
   }
 }
