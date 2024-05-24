@@ -2,13 +2,13 @@ import { Color, Bishop, King, Knight, Pawn, Queen, Rook, Piece, FENChar, SafeSqu
 import { FENConverter } from "./FENConverter";
 
 export class ChessBoard {
-    private chessBoard:(Piece|null)[][];
+    private chessBoard: (Piece | null)[][];
     private readonly chessBoardSize: number = 8;
     private _playerColor = Color.White;
     private _safeSquares: SafeSquares;
     private _lastMove: LastMove | undefined;
     private _checkState: CheckState = { isInCheck: false };
-    
+
     private _isGameOver: boolean = false;
     private _gameOverMessage: string = "";
 
@@ -32,10 +32,10 @@ export class ChessBoard {
                 new Pawn(Color.White), new Pawn(Color.White), new Pawn(Color.White), new Pawn(Color.White),
                 new Pawn(Color.White), new Pawn(Color.White), new Pawn(Color.White), new Pawn(Color.White)
             ],
-            [ null, null, null, null, null, null, null, null ],
-            [ null, null, null, null, null, null, null, null ],
-            [ null, null, null, null, null, null, null, null ],
-            [ null, null, null, null, null, null, null, null ],
+            [null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null],
+            [null, null, null, null, null, null, null, null],
             [
                 new Pawn(Color.Black), new Pawn(Color.Black), new Pawn(Color.Black), new Pawn(Color.Black),
                 new Pawn(Color.Black), new Pawn(Color.Black), new Pawn(Color.Black), new Pawn(Color.Black)
@@ -90,14 +90,14 @@ export class ChessBoard {
         return this._gameHistory;
     }
 
-    public get chessBoardView(): (FENChar|null)[][] {
+    public get chessBoardView(): (FENChar | null)[][] {
         return this.chessBoard.map(row => {
             return row.map(piece => piece instanceof Piece ? piece.fenChar : null);
         });
     }
 
     public static isSquareDark(x: number, y: number): boolean {
-        return (x % 2 == 0 && y % 2 == 0) || (x % 2 == 1 && y % 2 == 1); 
+        return (x % 2 == 0 && y % 2 == 0) || (x % 2 == 1 && y % 2 == 1);
     }
 
     private areCoordsValid(x: number, y: number): boolean {
@@ -107,11 +107,11 @@ export class ChessBoard {
     public isInCheck(playerColor: Color, checkingCurrentPosition: boolean = false): boolean {
         for (let x = 0; x < this.chessBoardSize; x++) {
             for (let y = 0; y < this.chessBoardSize; y++) {
-                const piece: Piece|null = this.chessBoard[x][y];
+                const piece: Piece | null = this.chessBoard[x][y];
 
                 if (!piece || piece.color === playerColor) continue;
 
-                for (const {x: dx, y: dy} of piece.directions) {
+                for (const { x: dx, y: dy } of piece.directions) {
                     let newX: number = x + dx;
                     let newY: number = y + dy;
 
@@ -119,8 +119,8 @@ export class ChessBoard {
 
                     if (piece instanceof Pawn || piece instanceof Knight || piece instanceof King) {
                         if (piece instanceof Pawn && dy === 0) continue;
-                        
-                        const attackedPiece: Piece|null = this.chessBoard[newX][newY];
+
+                        const attackedPiece: Piece | null = this.chessBoard[newX][newY];
 
                         if (attackedPiece instanceof King && attackedPiece.color === playerColor) {
                             if (checkingCurrentPosition) {
@@ -132,13 +132,13 @@ export class ChessBoard {
                     } else {
                         //Bishop, Queen, Rook
                         while (this.areCoordsValid(newX, newY)) {
-                            const attackedPiece: Piece|null = this.chessBoard[newX][newY];
+                            const attackedPiece: Piece | null = this.chessBoard[newX][newY];
 
                             if (attackedPiece instanceof King && attackedPiece.color === playerColor) {
                                 if (checkingCurrentPosition) {
                                     this._checkState = { isInCheck: true, x: newX, y: newY };
                                 }
-    
+
                                 return true;
                             }
 
@@ -160,10 +160,10 @@ export class ChessBoard {
     }
 
     public isPositionSafeAfterMove(prevX: number, prevY: number, newX: number, newY: number): boolean {
-        const piece: Piece|null = this.chessBoard[prevX][prevY];
+        const piece: Piece | null = this.chessBoard[prevX][prevY];
         if (!piece) { return false; }
 
-        const newPiece: Piece|null = this.chessBoard[newX][newY];
+        const newPiece: Piece | null = this.chessBoard[newX][newY];
 
         if (newPiece && newPiece.color === piece.color) {
             return false;
@@ -197,7 +197,7 @@ export class ChessBoard {
 
                     if (!this.areCoordsValid(newX, newY)) continue;
 
-                    let newPiece: Piece|null = this.chessBoard[newX][newY];
+                    let newPiece: Piece | null = this.chessBoard[newX][newY];
                     if (newPiece && newPiece.color === piece.color) continue;
 
                     if (piece instanceof Pawn) {
@@ -275,7 +275,7 @@ export class ChessBoard {
             pawnX !== currX ||
             Math.abs(pawnY - currY) !== 1
         ) {
-                return false;
+            return false;
         }
 
         const pawnNewPositionX: number = pawnX + (pawn.color === Color.White ? 1 : -1);
@@ -362,16 +362,18 @@ export class ChessBoard {
         this._lastMove = { prevX, prevY, currX: newX, currY: newY, piece, moveType };
         this._playerColor = this._playerColor === Color.White ? Color.Black : Color.White;
         this.isInCheck(this._playerColor, true);
-        this._safeSquares = this.findSafeSquares();
+
+        const safeSquares: SafeSquares = this.findSafeSquares();
 
         if (this._checkState.isInCheck) {
-            moveType.add(this._safeSquares.size > 0 ? MoveType.Check : MoveType.CheckMate);
+            moveType.add(safeSquares.size > 0 ? MoveType.Check : MoveType.CheckMate);
         } else if (moveType.size === 0) {
             moveType.add(MoveType.BasicMove);
         }
 
         this.storeMove(promotedPieceType);
         this.updateGameHistory();
+        this._safeSquares = safeSquares;
 
         if (this._playerColor === Color.White) {
             this.fullNumberOfMoves += 1;
@@ -409,13 +411,13 @@ export class ChessBoard {
             rook.hasMoved = true;
             moveType.add(MoveType.Castling);
         } else if (piece instanceof Pawn && this._lastMove &&
-                   this._lastMove.piece instanceof Pawn &&
-                   Math.abs(this._lastMove.currX - this._lastMove.prevX) === 2 &&
-                   prevX === this._lastMove.currX &&
-                   newY === this._lastMove.currY
+            this._lastMove.piece instanceof Pawn &&
+            Math.abs(this._lastMove.currX - this._lastMove.prevX) === 2 &&
+            prevX === this._lastMove.currX &&
+            newY === this._lastMove.currY
         ) {
             this.chessBoard[this._lastMove.currX][this._lastMove.currY] = null;
-            moveType.add(MoveType.Capture);   
+            moveType.add(MoveType.Capture);
         }
     }
 
@@ -483,17 +485,17 @@ export class ChessBoard {
 
     private storeMove(promotedPiece: FENChar | null): void {
         const { piece, currX, currY, prevX, prevY, moveType } = this._lastMove!;
-        let pieceName: string = !(piece instanceof Pawn) ? piece.fenChar : "";
+        let pieceName: string = !(piece instanceof Pawn) ? piece.fenChar.toUpperCase() : "";
         let move: string;
 
         if (moveType.has(MoveType.Castling)) {
             //Queen side and King side castling notations
             move = currY - prevY === 2 ? "O-O" : "O-O-O";
         } else {
-            move = pieceName + columns[prevY] + String(prevX + 1);
+            move = pieceName + this.startingPieceCoordsNotation();
 
             if (moveType.has(MoveType.Capture)) {
-                move += "x";
+                move += (piece instanceof Pawn) ? columns[prevY] + "X" : "";
             }
 
             move += columns[currY] + String(currX + 1);
@@ -522,5 +524,50 @@ export class ChessBoard {
             checkState: { ...this._checkState },
             lastMove: this._lastMove ? { ...this._lastMove } : undefined
         });
+    }
+
+    private startingPieceCoordsNotation(): string {
+        const { piece: currPiece, prevX, prevY, currX, currY } = this._lastMove!;
+
+        if (currPiece instanceof Pawn || currPiece instanceof King) { return ""; }
+
+        const samePiecesCoords: Coords[] = [{ x: prevX, y: prevY }];
+
+        for (let x = 0; x < this.chessBoardSize; x++) {
+            for (let y = 0; y < this.chessBoardSize; y++) {
+                const piece: Piece|null = this.chessBoard[x][y];
+
+                if (!piece || (currX === x && currY === y)) { continue; }
+                    
+                if (piece.fenChar === currPiece.fenChar) {
+                    const safeSquares: Coords[] = this._safeSquares.get(x + "," + y) || [];
+                    const pieceHasSameTargetSquare: boolean = safeSquares.some(
+                        coords => coords.x === currX && coords.y === currY
+                    );
+
+                    if (pieceHasSameTargetSquare) {
+                        samePiecesCoords.push({ x, y });
+                    }
+                }
+            }
+        }
+
+        if (samePiecesCoords.length === 1) { return ""; }
+
+        const piecesFile = new Set(samePiecesCoords.map(coords => coords.y));
+        const piecesRank = new Set(samePiecesCoords.map(coords => coords.x));
+
+        //all pieces are on different files (a, b, c etc.)
+        if (piecesFile.size === samePiecesCoords.length) {
+            return columns[prevY];
+        }
+
+        //all pieces are of different rank (1, 2, 3 etc.)
+        if (piecesRank.size === samePiecesCoords.length) {
+            return String(prevX + 1);
+        }
+
+        //multiple pieces share both rank and file
+        return columns[prevY] + String(prevX + 1);
     }
 }
