@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of, switchMap } from 'rxjs';
-import { ChessMove, ComputerConfiguration, StockFishQueryParams, StockFishResponse } from './models';
+import { ChessMove, ComputerConfiguration, StockFishQueryParams, StockFishResponse, stockFishLevels } from './models';
 import { Color, FENChar } from '../../chess-logic/models';
 
 @Injectable({
@@ -47,11 +47,10 @@ export class StockFishService {
   public getBestMove(fen: string): Observable<ChessMove> {
     const queryParams : StockFishQueryParams = {
       fen,
-      depth: this.computerConfiguration$.value.level
+      depth: stockFishLevels[this.computerConfiguration$.value.level]
     };
 
     let params = new HttpParams().appendAll(queryParams);
-
     return this.http.get<StockFishResponse>(this.api, { params })
                .pipe(
                   switchMap(response => {

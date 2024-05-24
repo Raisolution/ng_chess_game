@@ -29,9 +29,10 @@ export class PlayAgainstComputerDialogComponent {
 
   public play(color: string): void {
     this.dialog.closeAll();
+
     this.stockFishService.computerConfiguration$.next({
       color: color === 'w' ? Color.Black : Color.White,
-      level: this.stockFishLevels[this.stockFishLevel]
+      level: this.stockFishLevels[this.stockFishLevel - 1]
     });
 
     this.router.navigate(["against-computer"]);
