@@ -1,15 +1,16 @@
 import { Component, OnDestroy } from '@angular/core';
 import { ChessBoard } from '../../chess-logic/chess-board';
-import { CheckState, Color, Coords, FENChar, LastMove, SafeSquares, pieceImagePaths } from '../../chess-logic/models';
+import { CheckState, Color, Coords, FENChar, GameHistory, LastMove, MoveList, SafeSquares, pieceImagePaths } from '../../chess-logic/models';
 import { CommonModule } from '@angular/common';
 import { SelectedSquare } from './models';
 import { ChessBoardService } from './chess-board.service';
 import { FENConverter } from '../../chess-logic/FENConverter';
+import { MoveListComponent } from '../move-list/move-list.component';
 
 @Component({
   selector: 'app-chess-board',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MoveListComponent],
   templateUrl: './chess-board.component.html',
   styleUrl: './chess-board.component.css'
 })
@@ -34,6 +35,16 @@ export class ChessBoardComponent implements OnDestroy {
   private pieceSafeSquares: Coords[] = [];
   private lastMove: LastMove | undefined;
   private checkState: CheckState = this.chessBoard.checkState;
+
+  public get moveList(): MoveList {
+    return this.chessBoard.moveList;
+  }
+
+  public get gameHistory(): GameHistory {
+    return this.chessBoard.gameHistory;
+  }
+
+  public gameHistoryPointer: number = 0;
 
   public isPromotionActive: boolean = false;
   private promotionCoords: Coords | null = null;
@@ -154,6 +165,7 @@ export class ChessBoardComponent implements OnDestroy {
     
     this.unmarkingPreviouslySelectedAndSafeSquares();
     this.chessBoardService.chessBoardState$.next(this.chessBoard.boardAsFEN);
+    this.gameHistoryPointer += 1;
   }
 
   public promotePiece(piece: FENChar): void {
@@ -174,5 +186,14 @@ export class ChessBoardComponent implements OnDestroy {
   public move(x: number, y: number): void {
     this.selectingPiece(x, y)
     this.placingPiece(x, y);
+  }
+
+  public showPreviousPosition(moveIndex: number): void {
+    const { board, checkState, lastMove } = this.gameHistory[moveIndex];
+    
+    this.chessBoardView = board;
+    this.checkState = checkState;
+    this.lastMove = lastMove;
+    this.gameHistoryPointer = moveIndex;
   }
 }

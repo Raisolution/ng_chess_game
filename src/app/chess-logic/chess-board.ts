@@ -1,4 +1,4 @@
-import { Color, Bishop, King, Knight, Pawn, Queen, Rook, Piece, FENChar, SafeSquares, Coords, pieceImagePaths, LastMove, CheckState } from "./models";
+import { Color, Bishop, King, Knight, Pawn, Queen, Rook, Piece, FENChar, SafeSquares, Coords, pieceImagePaths, LastMove, CheckState, MoveType, MoveList, GameHistory, columns } from "./models";
 import { FENConverter } from "./FENConverter";
 
 export class ChessBoard {
@@ -19,6 +19,8 @@ export class ChessBoard {
 
     private _boardAsFEN: string = FENConverter.initalPosition;
     private fenConverter = new FENConverter();
+    private _moveList: MoveList = [];
+    private _gameHistory: GameHistory;
 
     constructor() {
         this.chessBoard = [
@@ -45,6 +47,11 @@ export class ChessBoard {
         ];
 
         this._safeSquares = this.findSafeSquares();
+        this._gameHistory = [{
+            board: this.chessBoardView,
+            lastMove: this._lastMove,
+            checkState: this._checkState
+        }];
     }
 
     public get safeSquares(): SafeSquares {
@@ -73,7 +80,15 @@ export class ChessBoard {
 
     public get boardAsFEN(): string {
         return this._boardAsFEN;
-    }    
+    }
+
+    public get moveList(): MoveList {
+        return this._moveList;
+    }
+
+    public get gameHistory(): GameHistory {
+        return this._gameHistory;
+    }
 
     public get chessBoardView(): (FENChar|null)[][] {
         return this.chessBoard.map(row => {
@@ -321,27 +336,42 @@ export class ChessBoard {
             piece.hasMoved = true;
         }
 
+        const moveType = new Set<MoveType>();
+
         const isPieceTaken: boolean = this.chessBoard[newX][newY] !== null;
+
+        if (isPieceTaken) { moveType.add(MoveType.Capture); }
+
         if (piece instanceof Pawn || isPieceTaken) {
             this.fiftyMoveRuleCounter = 0;
         } else {
             this.fiftyMoveRuleCounter += 0.5;
         }
 
-        this.handleSpecialMoves(piece, prevX, prevY, newX, newY);
+        this.handleSpecialMoves(piece, prevX, prevY, newX, newY, moveType);
 
         if (promotedPieceType) {
             this.chessBoard[newX][newY] = this.promotePiece(promotedPieceType);
+            moveType.add(MoveType.Promotion);
         } else {
             this.chessBoard[newX][newY] = piece;
         }
 
         this.chessBoard[prevX][prevY] = null;
 
-        this._lastMove = { prevX, prevY, currX: newX, currY: newY, piece};
+        this._lastMove = { prevX, prevY, currX: newX, currY: newY, piece, moveType };
         this._playerColor = this._playerColor === Color.White ? Color.Black : Color.White;
         this.isInCheck(this._playerColor, true);
         this._safeSquares = this.findSafeSquares();
+
+        if (this._checkState.isInCheck) {
+            moveType.add(this._safeSquares.size > 0 ? MoveType.Check : MoveType.CheckMate);
+        } else if (moveType.size === 0) {
+            moveType.add(MoveType.BasicMove);
+        }
+
+        this.storeMove(promotedPieceType);
+        this.updateGameHistory();
 
         if (this._playerColor === Color.White) {
             this.fullNumberOfMoves += 1;
@@ -360,7 +390,14 @@ export class ChessBoard {
         this._isGameOver = this.isGameFinished();
     }
 
-    private handleSpecialMoves(piece: Piece, prevX: number, prevY: number, newX: number, newY: number): void {
+    private handleSpecialMoves(
+        piece: Piece,
+        prevX: number,
+        prevY: number,
+        newX: number,
+        newY: number,
+        moveType: Set<MoveType>
+    ): void {
         if (piece instanceof King && Math.abs(newY - prevY) === 2) {
             const rookPositionX: number = prevX;
             const rookPositionY: number = newY > prevY ? 7 : 0;
@@ -370,13 +407,15 @@ export class ChessBoard {
             this.chessBoard[rookPositionX][rookPositionY] = null;
             this.chessBoard[rookPositionX][rookNewPositionY] = rook;
             rook.hasMoved = true;
+            moveType.add(MoveType.Castling);
         } else if (piece instanceof Pawn && this._lastMove &&
                    this._lastMove.piece instanceof Pawn &&
                    Math.abs(this._lastMove.currX - this._lastMove.prevX) === 2 &&
                    prevX === this._lastMove.currX &&
                    newY === this._lastMove.currY
         ) {
-            this.chessBoard[this._lastMove.currX][this._lastMove.currY] = null;    
+            this.chessBoard[this._lastMove.currX][this._lastMove.currY] = null;
+            moveType.add(MoveType.Capture);   
         }
     }
 
@@ -440,5 +479,48 @@ export class ChessBoard {
 
             this.threeFoldRepetitionDictionary.set(threeFoldRepetitionFenKey, 2);
         }
+    }
+
+    private storeMove(promotedPiece: FENChar | null): void {
+        const { piece, currX, currY, prevX, prevY, moveType } = this._lastMove!;
+        let pieceName: string = !(piece instanceof Pawn) ? piece.fenChar : "";
+        let move: string;
+
+        if (moveType.has(MoveType.Castling)) {
+            //Queen side and King side castling notations
+            move = currY - prevY === 2 ? "O-O" : "O-O-O";
+        } else {
+            move = pieceName + columns[prevY] + String(prevX + 1);
+
+            if (moveType.has(MoveType.Capture)) {
+                move += "x";
+            }
+
+            move += columns[currY] + String(currX + 1);
+
+            if (promotedPiece) {
+                move += "=" + promotedPiece.toUpperCase();
+            }
+
+            if (moveType.has(MoveType.Check)) {
+                move += "+";
+            } else if (moveType.has(MoveType.CheckMate)) {
+                move += "#";
+            }
+
+            if (!this._moveList[this.fullNumberOfMoves - 1]) {
+                this._moveList[this.fullNumberOfMoves - 1] = [move];
+            } else {
+                this._moveList[this.fullNumberOfMoves - 1].push(move);
+            }
+        }
+    }
+
+    private updateGameHistory(): void {
+        this._gameHistory.push({
+            board: [...this.chessBoardView.map(row => [...row])],
+            checkState: { ...this._checkState },
+            lastMove: this._lastMove ? { ...this._lastMove } : undefined
+        });
     }
 }

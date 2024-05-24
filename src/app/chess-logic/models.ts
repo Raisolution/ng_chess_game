@@ -27,6 +27,15 @@ export enum FENChar {
 
 export type SafeSquares = Map<string, Coords[]>;
 
+export enum MoveType {
+    Capture,
+    Castling,
+    Promotion,
+    Check,
+    CheckMate,
+    BasicMove
+}
+
 export const pieceImagePaths: Readonly<Record<FENChar, string>> = {
     [FENChar.WhitePawn]: 'assets/pieces/white pawn.svg',
     [FENChar.WhiteKnight]: 'assets/pieces/white knight.svg',
@@ -48,6 +57,7 @@ export type LastMove = {
     currX: number;
     currY: number;
     piece: Piece;
+    moveType: Set<MoveType>;
 };
 
 export type CheckState = {
@@ -55,6 +65,14 @@ export type CheckState = {
     x?: number;
     y?: number;
 }
+
+export type MoveList = ([string, string?])[];
+
+export type GameHistory = {
+    lastMove: LastMove | undefined;
+    checkState: CheckState;
+    board: (FENChar | null)[][];
+}[];
 
 export const columns = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
 
