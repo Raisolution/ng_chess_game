@@ -56,6 +56,8 @@ export type CheckState = {
     y?: number;
 }
 
+export const columns = ["a", "b", "c", "d", "e", "f", "g", "h"] as const;
+
 export { Bishop } from './pieces/bishop';
 export { King } from './pieces/king';
 export { Knight } from './pieces/knight';

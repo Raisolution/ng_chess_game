@@ -1,8 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { ChessBoard } from '../../chess-logic/chess-board';
 import { CheckState, Color, Coords, FENChar, LastMove, SafeSquares, pieceImagePaths } from '../../chess-logic/models';
 import { CommonModule } from '@angular/common';
 import { SelectedSquare } from './models';
+import { ChessBoardService } from './chess-board.service';
+import { FENConverter } from '../../chess-logic/FENConverter';
 
 @Component({
   selector: 'app-chess-board',
@@ -11,8 +13,8 @@ import { SelectedSquare } from './models';
   templateUrl: './chess-board.component.html',
   styleUrl: './chess-board.component.css'
 })
-export class ChessBoardComponent {
-  private chessBoard = new ChessBoard();
+export class ChessBoardComponent implements OnDestroy {
+  protected chessBoard = new ChessBoard();
   public chessBoardView: (FENChar|null)[][] = this.chessBoard.chessBoardView;
   public pieceImagePaths = pieceImagePaths;
 
@@ -40,6 +42,18 @@ export class ChessBoardComponent {
     return this.playerColor === Color.White ?
     [FENChar.WhiteKnight, FENChar.WhiteBishop, FENChar.WhiteRook, FENChar.WhiteQueen] :
     [FENChar.BlackKnight, FENChar.BlackBishop, FENChar.BlackRook, FENChar.BlackQueen]
+  }
+
+  public flipMode: boolean = false;
+
+  constructor(protected chessBoardService: ChessBoardService) { }
+
+  public ngOnDestroy(): void {
+    this.chessBoardService.chessBoardState$.next(FENConverter.initalPosition);
+  }
+
+  public flipBoard(): void {
+    this.flipMode = !this.flipMode;
   }
 
   public isSquareDark(x: number, y: number): boolean {
@@ -131,7 +145,7 @@ export class ChessBoardComponent {
     this.updateBoard(prevX, prevY, newX, newY);
   }
 
-  private updateBoard(prevX: number, prevY: number, newX: number, newY: number): void {
+  protected updateBoard(prevX: number, prevY: number, newX: number, newY: number): void {
     this.chessBoard.move(prevX, prevY, newX, newY, this.promotedPiece);
     this.chessBoardView = this.chessBoard.chessBoardView;
 
@@ -139,6 +153,7 @@ export class ChessBoardComponent {
     this.lastMove = this.chessBoard.lastMove;
     
     this.unmarkingPreviouslySelectedAndSafeSquares();
+    this.chessBoardService.chessBoardState$.next(this.chessBoard.boardAsFEN);
   }
 
   public promotePiece(piece: FENChar): void {

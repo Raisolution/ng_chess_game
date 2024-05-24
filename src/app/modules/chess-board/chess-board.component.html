@@ -1,4 +1,4 @@
-<div class="chess-board">
+<div class="chess-board" [ngClass]="{ 'rotated': flipMode }">
     @for (row of chessBoardView; track row; let x = $index) {
         <div class="row">
             @for (piece of row; track piece; let y = $index) {
@@ -15,12 +15,14 @@
                         <div [ngClass]="{
                             'safe-square': isSquareSafeForSelectedPiece(x, y)
                         }"></div>
-                        <img *ngIf="piece" [src]="pieceImagePaths[piece]" [alt]="piece" class="piece" />
+                        <img *ngIf="piece" [src]="pieceImagePaths[piece]" [alt]="piece" class="piece" [ngClass]="{ 'rotated': flipMode }" />
                 </div>
             }
         </div>
     }
 </div>
+
+<button (click)="flipBoard()">Flip Board</button>
 
 <h2 *ngIf="gameOverMessage" class="game-over-message">{{gameOverMessage}}</h2>
 
